@@ -32,8 +32,10 @@ A second attempt used a gyrometer to measure the rate of angular change and impl
 
 ### 3.3. Failed Attempt 3: Encoder-Based Correction at Stops (Positional Drift)
 This approach used accurate motor encoders to correct the robot's angle at the end of each movement segment, ensuring the robot always faced the correct direction. However, this failed to compensate for the **accumulated translational drift** that occurred during the segment, resulting in significant positional error.
+
 // C++ snippet for Angular Correction (Executed at stop)
 float desired_angle = 90.0; 
+
 // Calculate current angle based on encoder difference
 float current_angle_from_encoders = (left_encoder - right_encoder) * ENCODER_FACTOR;
 float drift_angle = current_angle_from_encoders - desired_angle;
@@ -56,7 +58,9 @@ The Path Pursuit (or Pure Pursuit) algorithm transformed the path-following prob
 
 ### 4.2. Continuous Dynamic Steering
 The core of the Path Pursuit algorithm is the continuous calculation of the **Lookahead Point ($\boldsymbol{P_L}$)**—a target point along the desired path a fixed distance ahead. The system then determines the **curvature ($\boldsymbol{\kappa}$)** required to steer the robot from its current position to $\boldsymbol{P_L}$. This curvature is mapped directly to the differential velocity of the two drive motors, resulting in smooth, continuous path correction.
+
 // C++ snippet for Path Pursuit Control Loop (Run every 50ms)
+
 // 1. Find the Lookahead Point (P_L) on the global path
 Point lookahead_point = path.getLookaheadPoint(robot.position, LOOKAHEAD_DISTANCE);
 
