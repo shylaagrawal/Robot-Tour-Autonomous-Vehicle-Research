@@ -25,7 +25,7 @@ The failure to achieve mechanical perfection necessitated a shift to software-ba
 ### 3.1. Failed Attempt 1: Compass-Based Correction (Magnetic Field Interference)
 This system attempted constant angular corrections using a digital compass. However, the electric current in the motor circuits created a local magnetic field, **corrupting the compass readings** and leading to inaccurate, self-sabotaging corrections.
 
-<img width="622" height="424" alt="image" src="https://github.com/user-attachments/assets/9b5517b2-72a5-4067-8d60-e0e1cd2db6eb" />
+<img width="466.5" height="318" alt="image" src="https://github.com/user-attachments/assets/9b5517b2-72a5-4067-8d60-e0e1cd2db6eb" />
 
 ### 3.2. Failed Attempt 2: Gyrometer Feedback (High Latency)
 A second attempt used a gyrometer to measure the rate of angular change and implement a simple proportional control system to adjust wheel speeds during movement. The system failed due to **high latency**, causing the robot to constantly **over-compensate** and enter a state of never-ending oscillations.
@@ -44,7 +44,7 @@ if (fabs(drift_angle) > 1.0) {
     delay(500); // 0.5 second halt for calibration - a major time inefficiency
 }
 
-<img width="842" height="328" alt="image" src="https://github.com/user-attachments/assets/62b9c2c8-1c25-40c9-87b6-34c178d03c85" />
+<img width="631.5" height="246" alt="image" src="https://github.com/user-attachments/assets/62b9c2c8-1c25-40c9-87b6-34c178d03c85" />
 
 ## 4. Path Pursuit: The Adaptive Control Solution
 The fundamental flaw in all previous attempts was the focus on discrete **error correction** rather than continuous **trajectory tracking**. The solution required a control algorithm that could dynamically plan a path to a moving target while adjusting for instantaneous velocity errors.
@@ -77,11 +77,11 @@ robot.set_velocity(v_left, v_right);
 The Path Pursuit implementation successfully traded the search for hardware perfection for the resilience of adaptive software. The data below compares the performance of the most successful prior attempt (Encoder Correction at Stops) against the final Path Pursuit solution over a standard 2-meter drive segment.
 
 ### 5.1. Performance Comparison Over 2-Meter Segment
-<img width="888" height="483" alt="image" src="https://github.com/user-attachments/assets/f4b14727-31e6-4011-91f8-47b7637c1c6e" />
+<img width="666" height="362" alt="image" src="https://github.com/user-attachments/assets/f4b14727-31e6-4011-91f8-47b7637c1c6e" />
 
 The Path Pursuit algorithm reduced the cumulative positional error by 80% while simultaneously reducing the time required to complete the segment by 35% by eliminating the half-second calibration halt.
 
-<img width="882" height="485" alt="image" src="https://github.com/user-attachments/assets/8eaa2bdd-cc1e-4f9c-a91d-bb5a759e426b" />
+<img width="661.5" height="364" alt="image" src="https://github.com/user-attachments/assets/8eaa2bdd-cc1e-4f9c-a91d-bb5a759e426b" />
 
 ## 6. Conclusion
 The project demonstrated that in the domain of autonomous robotics, a system's resilience depends not on the perfection of its components, but on the **adaptability of its control architecture**. The failure of the initial mechanical approach and the limitations of simple error-correction methods (Compass, Gyrometer, and discrete Encoder feedback) highlighted a critical principle of mechatronics: hardware will always be imperfect. The implemented Path Pursuit solution successfully managed this inherent imperfection, providing a robust, fast, and accurate system that placed competitively at the State level.
