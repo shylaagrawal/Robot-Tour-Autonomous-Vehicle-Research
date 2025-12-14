@@ -9,7 +9,7 @@ My initial hypothesis centered on optimizing the hardware. The robot utilized a 
 
 ## 2. The Problem of Inherent Imperfection
 
-<img width="1001" height="803" alt="image" src="https://github.com/user-attachments/assets/9dd7e4aa-a97e-4a68-a4ba-7e696836be38" />
+<img width="400.4" height="321.2" alt="image" src="https://github.com/user-attachments/assets/9dd7e4aa-a97e-4a68-a4ba-7e696836be38" />
 **FIGURE 2.1: Initial Differential Drive Robot Design**
 
 ### 2.1. Diagnosis of Non-Linear Drift
@@ -24,7 +24,8 @@ The failure to achieve mechanical perfection necessitated a shift to software-ba
 
 ### 3.1. Failed Attempt 1: Compass-Based Correction (Magnetic Field Interference)
 
-<img width="636" height="721" alt="image" src="https://github.com/user-attachments/assets/d8f74a90-0253-4d87-8b86-28a54fb69299" />
+<img width="254.4" height="288.4" alt="image" src="https://github.com/user-attachments/assets/d8f74a90-0253-4d87-8b86-28a54fb69299" />
+
 **FIGURE 3.1: Compass-Based Correction Methodology**
 
 This system attempted constant angular corrections using a digital compass. However, the electric current in the motor circuits created a local magnetic field, corrupting the compass readings and leading to inaccurate, self-sabotaging corrections.
@@ -74,7 +75,8 @@ A second attempt used a gyrometer to measure the rate of angular change and impl
 
 ### 3.3. Failed Attempt 3: Encoder-Based Correction at Stops (Positional Drift)
 
-<img width="1652" height="478" alt="image" src="https://github.com/user-attachments/assets/a8763622-aff0-43c9-84dc-269a02729f12" />
+<img width="660.8" height="111.2" alt="image" src="https://github.com/user-attachments/assets/a8763622-aff0-43c9-84dc-269a02729f12" />
+
 **FIGURE 3.3: Encoder Correction - Angle Fixed, Position Lost**
 
 This approach used accurate motor encoders to correct the robot's angle at the end of each movement segment, ensuring the robot always faced the correct direction. However, this failed to compensate for the accumulated translational drift that occurred during the segment, resulting in significant positional error.
@@ -85,7 +87,8 @@ The fundamental flaw in all previous attempts was the focus on discrete error co
 ### 4.1. The Path Pursuit Logic
 The Path Pursuit (or Pure Pursuit) algorithm transformed the path-following problem into a continuous geometric steering problem. This methodology continuously predicts deviations and adjusts motor power on the move, eliminating the need for constant halts and thereby decreasing the time as well.
 
-<img width="1374" height="759" alt="image" src="https://github.com/user-attachments/assets/3f12d708-b67e-430c-9ffe-be26c09ada20" />
+<img width="549.6" height="303.6" alt="image" src="https://github.com/user-attachments/assets/3f12d708-b67e-430c-9ffe-be26c09ada20" />
+
 **FIGURE 4.1: Path Pursuit Geometry**
 
 ### 4.2. Odometry as a Position Reference
@@ -311,7 +314,7 @@ The Path Pursuit implementation successfully traded the search for hardware perf
 
 ### 5.1. Performance Comparison Over 2-Meter Segment
 
-<img width="1427" height="534" alt="image" src="https://github.com/user-attachments/assets/5842033e-84ff-4472-855f-412b182ac856" />
+<img width="570.8" height="213.6" alt="image" src="https://github.com/user-attachments/assets/5842033e-84ff-4472-855f-412b182ac856" />
 The Path Pursuit algorithm reduced the cumulative positional error by 80% while simultaneously reducing the time required to complete the segment by 35% by eliminating the half-second calibration halt.
 
 ## 6. Conclusion
