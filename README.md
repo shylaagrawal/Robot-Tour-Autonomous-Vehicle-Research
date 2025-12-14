@@ -3,6 +3,10 @@
 
 **Abstract** - This technical paper details the journey of designing and implementing an Autonomous Mobile Robot (AMR) for Science Olympiad’s "Robot Tour" event, focusing on overcoming fundamental hardware imperfections through adaptive software. Initially, the project was plagued by persistent, non-linear drift due to minuscule variances between identical drive motors. After several unsuccessful attempts at mechanical and simple odometry correction (including compass and gyrometer feedback), the solution shifted to a predictive, model-based control system. The final implemented methodology, based on the principles of the Path Pursuit algorithm, successfully mitigated accumulated errors by dynamically calculating trajectory adjustments, achieving reliable straight-line navigation in a tight time window. The work concludes that in mechatronic systems, perfection is impossible, and the true challenge lies in designing robust, adaptive software to manage and compensate for inherent hardware imperfections.
 
+![path-pursuit-sim](https://github.com/user-attachments/assets/9209dc9f-d5c0-4f4f-ae1e-2a9bb68a6f90)
+
+*Simple Simulation of Path Pursuit Algorithm*
+
 ## 1. Introduction and The Robot Tour Challenge
 The Science Olympiad event, "Robot Tour," presents a constrained optimization problem: design an autonomous robot to navigate a defined grid, score the maximum possible points by hitting targets, and complete the sequence within a tight time limit. Success is dictated by the ability to execute a pre-determined, high-score path with exceptional precision and speed. The core requirements demand highly consistent movement, as every millimeter of positional drift and every fraction of a second directly impacts the final score.
 My initial hypothesis centered on optimizing the hardware. The robot utilized a basic differential drive configuration, where two motorized wheels are used for movement and steering. The expectation was that by meticulously designing the chassis, power system, and sensor suite, perfect open-loop motion could be achieved. This premise proved flawed, leading to a profound realization about the nature of mechanical systems.
@@ -133,8 +137,6 @@ function odometry(): void {
 ```
 ### 4.3. Continuous Dynamic Steering
 The core of the Path Pursuit algorithm is the continuous calculation of the Lookahead Point (LP), a target point along the desired path a fixed distance ahead. The system then determines the curvature required to steer the robot from its current position to the next point on the Global Path. This curvature is mapped directly to the differential velocity of the two drive motors, resulting in smooth, continuous path correction.
-
-A simple simulation of the Path Pursuit algorithm in context can be found here: https://path-pursuit-sim.w3spaces.com/saved-from-Tryit-2025-12-14.html 
 
 The robot follows a predefined path using a Pure Pursuit controller, which continuously steers toward a nearby “lookahead” point rather than aiming for the final destination directly. At each step, the robot estimates its position and heading using wheel encoders, then computes the curvature needed to smoothly approach the lookahead point. This curvature is translated into left and right wheel speeds, allowing the robot to follow both straight and curved segments.
 
