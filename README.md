@@ -9,6 +9,7 @@ My initial hypothesis centered on optimizing the hardware. The robot utilized a 
 
 ## 2. The Problem of Inherent Imperfection
 
+<img width="1001" height="803" alt="image" src="https://github.com/user-attachments/assets/9dd7e4aa-a97e-4a68-a4ba-7e696836be38" />
 **FIGURE 2.1: Initial Differential Drive Robot Design**
 
 ### 2.1. Diagnosis of Non-Linear Drift
@@ -23,6 +24,7 @@ The failure to achieve mechanical perfection necessitated a shift to software-ba
 
 ### 3.1. Failed Attempt 1: Compass-Based Correction (Magnetic Field Interference)
 
+<img width="636" height="721" alt="image" src="https://github.com/user-attachments/assets/d8f74a90-0253-4d87-8b86-28a54fb69299" />
 **FIGURE 3.1: Compass-Based Correction Methodology**
 
 This system attempted constant angular corrections using a digital compass. However, the electric current in the motor circuits created a local magnetic field, corrupting the compass readings and leading to inaccurate, self-sabotaging corrections.
@@ -72,7 +74,9 @@ A second attempt used a gyrometer to measure the rate of angular change and impl
 
 ### 3.3. Failed Attempt 3: Encoder-Based Correction at Stops (Positional Drift)
 
+<img width="1652" height="478" alt="image" src="https://github.com/user-attachments/assets/a8763622-aff0-43c9-84dc-269a02729f12" />
 **FIGURE 3.3: Encoder Correction - Angle Fixed, Position Lost**
+
 This approach used accurate motor encoders to correct the robot's angle at the end of each movement segment, ensuring the robot always faced the correct direction. However, this failed to compensate for the accumulated translational drift that occurred during the segment, resulting in significant positional error.
 
 ## 4. Path Pursuit: The Adaptive Control Solution
@@ -81,6 +85,7 @@ The fundamental flaw in all previous attempts was the focus on discrete error co
 ### 4.1. The Path Pursuit Logic
 The Path Pursuit (or Pure Pursuit) algorithm transformed the path-following problem into a continuous geometric steering problem. This methodology continuously predicts deviations and adjusts motor power on the move, eliminating the need for constant halts and thereby decreasing the time as well.
 
+<img width="1374" height="759" alt="image" src="https://github.com/user-attachments/assets/3f12d708-b67e-430c-9ffe-be26c09ada20" />
 **FIGURE 4.1: Path Pursuit Geometry**
 
 ### 4.2. Odometry as a Position Reference
@@ -125,7 +130,8 @@ function odometry(): void {
 ### 4.3. Continuous Dynamic Steering
 The core of the Path Pursuit algorithm is the continuous calculation of the Lookahead Point (LP), a target point along the desired path a fixed distance ahead. The system then determines the curvature required to steer the robot from its current position to the next point on the Global Path. This curvature is mapped directly to the differential velocity of the two drive motors, resulting in smooth, continuous path correction.
 
-A simple simulation of the Path Pursuit algorithm in context can be found here: Path Pursuit Simulation 
+A simple simulation of the Path Pursuit algorithm in context can be found here: https://path-pursuit-sim.w3spaces.com/saved-from-Tryit-2025-12-14.html 
+
 The robot follows a predefined path using a Pure Pursuit controller, which continuously steers toward a nearby “lookahead” point rather than aiming for the final destination directly. At each step, the robot estimates its position and heading using wheel encoders, then computes the curvature needed to smoothly approach the lookahead point. This curvature is translated into left and right wheel speeds, allowing the robot to follow both straight and curved segments.
 
 Standard Pure Pursuit performs poorly when the required turn is very large. To address this, the system detects sharp heading changes and temporarily switches to a turn-in-place mode. In this state, the robot rotates on the spot until its heading aligns with the next path segment, then resumes normal path following. This hybrid approach improves reliability on paths containing reversals or abrupt direction changes while preserving smooth motion elsewhere.
@@ -305,6 +311,7 @@ The Path Pursuit implementation successfully traded the search for hardware perf
 
 ### 5.1. Performance Comparison Over 2-Meter Segment
 
+<img width="1427" height="534" alt="image" src="https://github.com/user-attachments/assets/5842033e-84ff-4472-855f-412b182ac856" />
 The Path Pursuit algorithm reduced the cumulative positional error by 80% while simultaneously reducing the time required to complete the segment by 35% by eliminating the half-second calibration halt.
 
 ## 6. Conclusion
