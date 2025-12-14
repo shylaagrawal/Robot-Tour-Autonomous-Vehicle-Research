@@ -3,7 +3,7 @@
 
 **Abstract** - This technical paper details the journey of designing and implementing an Autonomous Mobile Robot (AMR) for Science Olympiad’s "Robot Tour" event, focusing on overcoming fundamental hardware imperfections through adaptive software. Initially, the project was plagued by persistent, non-linear drift due to minuscule variances between identical drive motors. After several unsuccessful attempts at mechanical and simple odometry correction (including compass and gyrometer feedback), the solution shifted to a predictive, model-based control system. The final implemented methodology, based on the principles of the Path Pursuit algorithm, successfully mitigated accumulated errors by dynamically calculating trajectory adjustments, achieving reliable straight-line navigation in a tight time window. The work concludes that in mechatronic systems, perfection is impossible, and the true challenge lies in designing robust, adaptive software to manage and compensate for inherent hardware imperfections.
 
-![path-pursuit-sim](https://github.com/user-attachments/assets/9209dc9f-d5c0-4f4f-ae1e-2a9bb68a6f90)
+<img width="420" height="420" alt="path-pursuit-sim" src="https://github.com/user-attachments/assets/9209dc9f-d5c0-4f4f-ae1e-2a9bb68a6f90" />
 
 *Simple Simulation of Path Pursuit Algorithm*
 
