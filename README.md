@@ -317,7 +317,9 @@ The Path Pursuit implementation successfully traded the search for hardware perf
 
 <img width="570.8" height="213.6" alt="image" src="https://github.com/user-attachments/assets/5842033e-84ff-4472-855f-412b182ac856" />
 
+
 The Path Pursuit algorithm reduced the cumulative positional error by 80% while simultaneously reducing the time required to complete the segment by 35% by eliminating the half-second calibration halt.
+
 
 This video demonstrates the robot moving with the previous stop and go logic:
 
