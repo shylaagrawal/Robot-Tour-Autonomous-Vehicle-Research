@@ -10,6 +10,7 @@ My initial hypothesis centered on optimizing the hardware. The robot utilized a 
 ## 2. The Problem of Inherent Imperfection
 
 <img width="400.4" height="321.2" alt="image" src="https://github.com/user-attachments/assets/9dd7e4aa-a97e-4a68-a4ba-7e696836be38" />
+
 **FIGURE 2.1: Initial Differential Drive Robot Design**
 
 ### 2.1. Diagnosis of Non-Linear Drift
@@ -75,7 +76,7 @@ A second attempt used a gyrometer to measure the rate of angular change and impl
 
 ### 3.3. Failed Attempt 3: Encoder-Based Correction at Stops (Positional Drift)
 
-<img width="660.8" height="111.2" alt="image" src="https://github.com/user-attachments/assets/a8763622-aff0-43c9-84dc-269a02729f12" />
+<img width="621.2" height="156.4" alt="image" src="https://github.com/user-attachments/assets/c70ee153-5530-4c45-94ae-aa1ae7c7b1a7" />
 
 **FIGURE 3.3: Encoder Correction - Angle Fixed, Position Lost**
 
@@ -315,6 +316,7 @@ The Path Pursuit implementation successfully traded the search for hardware perf
 ### 5.1. Performance Comparison Over 2-Meter Segment
 
 <img width="570.8" height="213.6" alt="image" src="https://github.com/user-attachments/assets/5842033e-84ff-4472-855f-412b182ac856" />
+
 The Path Pursuit algorithm reduced the cumulative positional error by 80% while simultaneously reducing the time required to complete the segment by 35% by eliminating the half-second calibration halt.
 
 ## 6. Conclusion
