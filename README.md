@@ -319,6 +319,14 @@ The Path Pursuit implementation successfully traded the search for hardware perf
 
 The Path Pursuit algorithm reduced the cumulative positional error by 80% while simultaneously reducing the time required to complete the segment by 35% by eliminating the half-second calibration halt.
 
+This video demonstrates the robot moving with the previous stop and go logic:
+
+https://github.com/user-attachments/assets/4ee11a92-d143-4f47-b008-954648b78df8
+
+This video demostrates the robot moving with the new Path Pursuit logic:
+
+https://github.com/user-attachments/assets/409c4eea-e6b3-4309-95a0-437383bbe2da
+
 ## 6. Conclusion
 The project demonstrated that in the domain of autonomous robotics, a system's resilience depends not on the perfection of its components, but on the adaptability of its control architecture. The failure of the initial mechanical approach and the limitations of simple error-correction methods (Compass, Gyrometer, and discrete Encoder feedback) highlighted a critical principle of mechatronics: hardware will always be imperfect. The implemented Path Pursuit solution successfully managed this inherent imperfection, providing a robust, fast, and accurate system that placed competitively at the State level.
 
