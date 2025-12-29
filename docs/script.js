@@ -121,45 +121,51 @@ function getLookaheadPoint(path, startIndex, lookaheadDist) {
     return path.length ? getCellCenter(path[path.length-1][0], path[path.length-1][1]) : null;
 }
 
-function simulateRobot() {
-    if(!runningPath || pathIndex>=userPath.length) return;
+function simulateRobot(){
+    if(!runningPath || userPath.length < 2) return;
 
-    const lookaheadPoint = getLookaheadPoint(userPath, pathIndex, lookahead);
-    if(!lookaheadPoint) return;
+    const LOOKAHEAD = 40;
+    const SPEED = 2;
+    const TURN_GAIN = 0.05;
 
-    const [lx,ly] = lookaheadPoint;
-    const dx = lx-robotX;
-    const dy = ly-robotY;
-    const angleToTarget = Math.atan2(dy,dx)*180/Math.PI;
-    let angleDiff = angleToTarget - robotTheta;
-    while(angleDiff>180) angleDiff-=360;
-    while(angleDiff<-180) angleDiff+=360;
+    // Find lookahead target
+    let targetX = null;
+    let targetY = null;
 
-    // Smooth rotation
-    robotTheta += Math.sign(angleDiff) * Math.min(5, Math.abs(angleDiff));
-
-    // Move forward along heading
-    const dist = distance(robotX,robotY,lx,ly);
-    if(dist>1){
-        const rad = robotTheta*Math.PI/180;
-        robotX += Math.cos(rad)*Math.min(targetSpeed, dist);
-        robotY += Math.sin(rad)*Math.min(targetSpeed, dist);
+    for(let i = robotIndex; i < userPath.length; i++){
+        const [r,c] = userPath[i];
+        const [cx,cy] = getCellCenter(r,c);
+        if(distance(robotX, robotY, cx, cy) > LOOKAHEAD){
+            targetX = cx;
+            targetY = cy;
+            robotIndex = i;
+            break;
+        }
     }
 
-    // Advance path index if close to next waypoint
-    const [nextX,nextY] = getCellCenter(userPath[pathIndex][0], userPath[pathIndex][1]);
-    if(distance(robotX,robotY,nextX,nextY)<lookahead/2){
-        pathIndex++;
+    // If no lookahead found, target final point
+    if(targetX === null){
+        const [r,c] = userPath[userPath.length-1];
+        [targetX,targetY] = getCellCenter(r,c);
     }
+
+    // Heading to lookahead
+    const dx = targetX - robotX;
+    const dy = targetY - robotY;
+    const targetTheta = Math.atan2(dy,dx);
+    const currentTheta = robotTheta * Math.PI/180;
+
+    let angleError = targetTheta - currentTheta;
+    while(angleError > Math.PI) angleError -= 2*Math.PI;
+    while(angleError < -Math.PI) angleError += 2*Math.PI;
+
+    // Continuous curvature control
+    robotTheta += angleError * TURN_GAIN * 180/Math.PI;
+
+    // Always move forward
+    robotX += Math.cos(robotTheta*Math.PI/180) * SPEED;
+    robotY += Math.sin(robotTheta*Math.PI/180) * SPEED;
 }
 
-// --- Main Loop ---
-function loop(){
-    drawGrid();
-    drawUserPath();
-    simulateRobot();
-    drawRobot();
-    requestAnimationFrame(loop);
-}
 
 loop();
