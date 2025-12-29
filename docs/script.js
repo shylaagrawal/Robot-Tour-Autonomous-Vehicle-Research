@@ -6,166 +6,173 @@ const COLS = 5;
 const CELL_SIZE = 100;
 
 let userPath = [];
+let smoothPath = [];
 let dragging = false;
+let runningPath = false;
+let robotIndex = 0;
 
 let robotX = 0;
 let robotY = 0;
 let robotTheta = 0; // degrees
-let runningPath = false;
 
-let lookahead = 30;   // pixels
-let targetSpeed = 2;  // pixels per frame
-let pathIndex = 0;
-
-// --- Helpers ---
-function getCellCenter(row, col) {
-    return [col*CELL_SIZE + CELL_SIZE/2, row*CELL_SIZE + CELL_SIZE/2];
+// ---------- Helpers ----------
+function getCellCenter(row, col){
+    return [col * CELL_SIZE + CELL_SIZE / 2,
+            row * CELL_SIZE + CELL_SIZE / 2];
 }
 
-function getMouseCell(e) {
+function distance(x1,y1,x2,y2){
+    return Math.hypot(x2-x1, y2-y1);
+}
+
+function getMouseCell(e){
     const rect = canvas.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const y = e.clientY - rect.top;
-    const col = Math.floor(x / CELL_SIZE);
-    const row = Math.floor(y / CELL_SIZE);
-    return [row, col];
+    return [
+        Math.floor(y / CELL_SIZE),
+        Math.floor(x / CELL_SIZE)
+    ];
 }
 
-function distance(x1,y1,x2,y2){ return Math.hypot(x2-x1, y2-y1); }
-
-// --- Event Listeners ---
-canvas.addEventListener("mousedown", e => { dragging = true; addPath(e); });
-canvas.addEventListener("mousemove", e => { if(dragging) addPath(e); });
-canvas.addEventListener("mouseup", e => { dragging = false; });
-
-function addPath(e) {
-    const [row,col] = getMouseCell(e);
-    if(!userPath.some(p=>p[0]==row && p[1]==col)){
-        userPath.push([row,col]);
-    }
-}
-
-document.getElementById("runBtn").addEventListener("click", ()=>{
-    if(userPath.length>0){
-        const [row,col] = userPath[0];
-        [robotX, robotY] = getCellCenter(row,col);
-        robotTheta = 0;
-        pathIndex = 0;
-        runningPath = true;
-    }
+// ---------- Mouse Input ----------
+canvas.addEventListener("mousedown", e=>{
+    dragging = true;
+    addPath(e);
 });
 
-// --- Drawing ---
-function drawGrid() {
+canvas.addEventListener("mousemove", e=>{
+    if(dragging) addPath(e);
+});
+
+canvas.addEventListener("mouseup", ()=>{
+    dragging = false;
+});
+
+function addPath(e){
+    const [r,c] = getMouseCell(e);
+    if(r<0 || c<0 || r>=ROWS || c>=COLS) return;
+    if(!userPath.some(p => p[0] === r && p[1] === c)){
+        userPath.push([r,c]);
+    }
+}
+
+// ---------- Run Button ----------
+document.getElementById("runBtn").addEventListener("click", ()=>{
+    if(userPath.length < 2) return;
+
+    smoothPath = [];
+
+    for(let i=0;i<userPath.length-1;i++){
+        const [r1,c1] = userPath[i];
+        const [r2,c2] = userPath[i+1];
+        const [x1,y1] = getCellCenter(r1,c1);
+        const [x2,y2] = getCellCenter(r2,c2);
+
+        const steps = 25;
+        for(let t=0;t<=steps;t++){
+            smoothPath.push([
+                x1 + (x2-x1)*t/steps,
+                y1 + (y2-y1)*t/steps
+            ]);
+        }
+    }
+
+    robotIndex = 0;
+    [robotX, robotY] = smoothPath[0];
+    robotTheta = 0;
+    runningPath = true;
+});
+
+// ---------- Drawing ----------
+function drawGrid(){
     ctx.clearRect(0,0,canvas.width,canvas.height);
+    ctx.strokeStyle = "black";
     for(let r=0;r<ROWS;r++){
         for(let c=0;c<COLS;c++){
-            ctx.strokeStyle="black";
-            ctx.lineWidth=1;
-            ctx.strokeRect(c*CELL_SIZE,r*CELL_SIZE,CELL_SIZE,CELL_SIZE);
+            ctx.strokeRect(
+                c*CELL_SIZE,
+                r*CELL_SIZE,
+                CELL_SIZE,
+                CELL_SIZE
+            );
         }
     }
 }
 
 function drawUserPath(){
-    if(userPath.length>1){
-        ctx.strokeStyle="blue";
-        ctx.lineWidth=3;
-        ctx.beginPath();
-        let [x,y] = getCellCenter(userPath[0][0], userPath[0][1]);
-        ctx.moveTo(x,y);
-        for(let i=1;i<userPath.length;i++){
-            [x,y] = getCellCenter(userPath[i][0], userPath[i][1]);
-            ctx.lineTo(x,y);
-        }
-        ctx.stroke();
+    if(userPath.length < 2) return;
+    ctx.strokeStyle = "blue";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    let [x,y] = getCellCenter(userPath[0][0], userPath[0][1]);
+    ctx.moveTo(x,y);
+    for(let i=1;i<userPath.length;i++){
+        [x,y] = getCellCenter(userPath[i][0], userPath[i][1]);
+        ctx.lineTo(x,y);
     }
+    ctx.stroke();
 }
 
 function drawRobot(){
-    ctx.fillStyle="red";
+    ctx.fillStyle = "red";
     ctx.beginPath();
     ctx.arc(robotX, robotY, 8, 0, Math.PI*2);
     ctx.fill();
 }
 
-// --- Pure Pursuit Simulation ---
-function getLookaheadPoint(path, startIndex, lookaheadDist) {
-    for(let i=startIndex; i<path.length-1; i++){
-        const [x1,y1] = getCellCenter(path[i][0], path[i][1]);
-        const [x2,y2] = getCellCenter(path[i+1][0], path[i+1][1]);
-
-        const dx = x2-x1;
-        const dy = y2-y1;
-        const segLenSq = dx*dx + dy*dy;
-        if(segLenSq < 1e-6) continue;
-
-        const fx = x1-robotX;
-        const fy = y1-robotY;
-        const a = segLenSq;
-        const b = 2*(fx*dx + fy*dy);
-        const c = fx*fx + fy*fy - lookaheadDist*lookaheadDist;
-        const disc = b*b - 4*a*c;
-
-        if(disc>=0){
-            const sqrtDisc = Math.sqrt(disc);
-            const t1 = (-b + sqrtDisc)/(2*a);
-            const t2 = (-b - sqrtDisc)/(2*a);
-            for(const t of [t1,t2]){
-                if(t>=0 && t<=1){
-                    return [x1 + t*dx, y1 + t*dy];
-                }
-            }
-        }
-    }
-    return path.length ? getCellCenter(path[path.length-1][0], path[path.length-1][1]) : null;
-}
-
+// ---------- Pure Pursuit ----------
 function simulateRobot(){
-    if(!runningPath || userPath.length < 2) return;
+    if(!runningPath || robotIndex >= smoothPath.length) return;
 
     const LOOKAHEAD = 40;
-    const SPEED = 2;
-    const TURN_GAIN = 0.05;
+    const SPEED = 2.2;
+    const TURN_GAIN = 0.08;
 
-    // Find lookahead target
-    let targetX = null;
-    let targetY = null;
+    // Advance path index
+    while(
+        robotIndex < smoothPath.length-1 &&
+        distance(robotX, robotY,
+                 smoothPath[robotIndex][0],
+                 smoothPath[robotIndex][1]) < 6
+    ){
+        robotIndex++;
+    }
 
-    for(let i = robotIndex; i < userPath.length; i++){
-        const [r,c] = userPath[i];
-        const [cx,cy] = getCellCenter(r,c);
-        if(distance(robotX, robotY, cx, cy) > LOOKAHEAD){
-            targetX = cx;
-            targetY = cy;
-            robotIndex = i;
+    // Lookahead target
+    let lx = smoothPath[robotIndex][0];
+    let ly = smoothPath[robotIndex][1];
+
+    for(let i=robotIndex;i<smoothPath.length;i++){
+        if(distance(robotX, robotY,
+                    smoothPath[i][0],
+                    smoothPath[i][1]) >= LOOKAHEAD){
+            lx = smoothPath[i][0];
+            ly = smoothPath[i][1];
             break;
         }
     }
 
-    // If no lookahead found, target final point
-    if(targetX === null){
-        const [r,c] = userPath[userPath.length-1];
-        [targetX,targetY] = getCellCenter(r,c);
-    }
-
-    // Heading to lookahead
-    const dx = targetX - robotX;
-    const dy = targetY - robotY;
-    const targetTheta = Math.atan2(dy,dx);
+    const targetTheta = Math.atan2(ly-robotY, lx-robotX);
     const currentTheta = robotTheta * Math.PI/180;
 
-    let angleError = targetTheta - currentTheta;
-    while(angleError > Math.PI) angleError -= 2*Math.PI;
-    while(angleError < -Math.PI) angleError += 2*Math.PI;
+    let error = targetTheta - currentTheta;
+    while(error > Math.PI) error -= 2*Math.PI;
+    while(error < -Math.PI) error += 2*Math.PI;
 
-    // Continuous curvature control
-    robotTheta += angleError * TURN_GAIN * 180/Math.PI;
+    robotTheta += error * TURN_GAIN * 180/Math.PI;
 
-    // Always move forward
     robotX += Math.cos(robotTheta*Math.PI/180) * SPEED;
     robotY += Math.sin(robotTheta*Math.PI/180) * SPEED;
 }
 
+// ---------- Loop ----------
+function loop(){
+    drawGrid();
+    drawUserPath();
+    simulateRobot();
+    drawRobot();
+    requestAnimationFrame(loop);
+}
 
 loop();
