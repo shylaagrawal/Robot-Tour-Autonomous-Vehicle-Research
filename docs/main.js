@@ -4,7 +4,7 @@ const ctx = canvas.getContext("2d");
 // Canvas sizing
 function resizeCanvas() {
   canvas.width = window.innerWidth * 0.7; // leave space for table
-  canvas.height = window.innerHeight;
+  canvas.height = window.innerHeight - 50; // leave space for button
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -20,6 +20,7 @@ let smoothPath = [];
 let dragging = false;
 let runningPath = false;
 let robotIndex = 0;
+let paused = false; // <<< pause flag
 
 // Robot
 let robotX = 0;
@@ -72,6 +73,7 @@ function createSmoothPath(){
     robotTheta = 0;
     runningPath = true;
     reachedEnd = false;
+    paused = false;
     startTime = Date.now();
   }
 }
@@ -135,7 +137,7 @@ function drawRobot(){
 
 /* ---------- SIMULATE ROBOT ---------- */
 function simulateRobot(){
-  if(!runningPath || reachedEnd || robotIndex>=smoothPath.length) return;
+  if(!runningPath || reachedEnd || robotIndex>=smoothPath.length || paused) return;
 
   const LOOKAHEAD = lookaheadDistance;
   const TURN_GAIN = 0.08;
@@ -186,9 +188,12 @@ function updateDebugTable(){
   debugTableBody.appendChild(row);
   debugTableBody.scrollTop = debugTableBody.scrollHeight; // auto-scroll
 }
-
-// Update debug table every 50ms
 setInterval(updateDebugTable, 50);
+
+/* ---------- STOP BUTTON ---------- */
+document.getElementById("stopBtn").addEventListener("click", () => {
+  paused = true;
+});
 
 /* ---------- LOOP ---------- */
 function loop(){
