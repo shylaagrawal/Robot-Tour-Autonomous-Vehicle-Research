@@ -5,8 +5,9 @@
 <title>Pure Pursuit Debug Table</title>
 <style>
   body { margin: 0; display: flex; height: 100vh; font-family: monospace; }
-  #canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; }
+  #canvas-container { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; }
   canvas { border: 1px solid #aaa; }
+  #stopBtn { margin-top: 10px; padding: 6px 12px; font-size: 14px; cursor: pointer; }
   #debug-container {
     width: 400px;
     overflow-y: auto;
@@ -23,6 +24,7 @@
 
 <div id="canvas-container">
   <canvas id="gridCanvas"></canvas>
+  <button id="stopBtn">Stop</button>
 </div>
 
 <div id="debug-container">
