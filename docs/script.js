@@ -9,16 +9,17 @@ const ROWS = 4;
 const COLS = 5;
 const CELL_SIZE = 100;
 
-// ---- Robot parameters ----
-const WHEEL_TRACK = 30;
-const LOOKAHEAD = 40;
-const TARGET_SPEED = 4;
+// --- Robot parameters (from v1) ---
+const robotRadius = 8;
+const wheelTrack = 30;
+const lookaheadDistance = 40;
+const targetVelocity = 4;
 
 let userPath = [];
-let smoothPath = [];
+let path = [];
 let dragging = false;
 let runningPath = false;
-let robotIndex = 0;
+let currentPathIndex = 0;
 
 let robotX = 0;
 let robotY = 0;
@@ -34,13 +35,8 @@ function distance(x1,y1,x2,y2){
     return Math.hypot(x2-x1, y2-y1);
 }
 
-function getMouseCell(e){
-    const rect = canvas.getBoundingClientRect();
-    return [
-        Math.floor((e.clientY-rect.top)/CELL_SIZE),
-        Math.floor((e.clientX-rect.left)/CELL_SIZE)
-    ];
-}
+function toRad(d){ return d*Math.PI/180; }
+function toDeg(r){ return r*180/Math.PI; }
 
 // ---------- Mouse ----------
 canvas.addEventListener("mousedown",e=>{
@@ -53,7 +49,9 @@ canvas.addEventListener("mousemove",e=>{
 canvas.addEventListener("mouseup",()=>dragging=false);
 
 function addPath(e){
-    const [r,c] = getMouseCell(e);
+    const rect = canvas.getBoundingClientRect();
+    const r = Math.floor((e.clientY-rect.top)/CELL_SIZE);
+    const c = Math.floor((e.clientX-rect.left)/CELL_SIZE);
     if(r<0||c<0||r>=ROWS||c>=COLS) return;
     if(!userPath.some(p=>p[0]==r && p[1]==c)){
         userPath.push([r,c]);
@@ -64,87 +62,91 @@ function addPath(e){
 document.getElementById("runBtn").addEventListener("click",()=>{
     if(userPath.length<2) return;
 
-    smoothPath = [];
-    for(let i=0;i<userPath.length-1;i++){
-        const [r1,c1]=userPath[i];
-        const [r2,c2]=userPath[i+1];
-        const [x1,y1]=getCellCenter(r1,c1);
-        const [x2,y2]=getCellCenter(r2,c2);
-        for(let t=0;t<=25;t++){
-            smoothPath.push([
-                x1+(x2-x1)*t/25,
-                y1+(y2-y1)*t/25
-            ]);
-        }
-    }
+    path = userPath.map(p => getCellCenter(p[0],p[1]));
+    currentPathIndex = 0;
 
-    robotIndex = 0;
-    [robotX,robotY] = smoothPath[0];
+    robotX = path[0][0];
+    robotY = path[0][1];
     robotTheta = 0;
     runningPath = true;
 });
 
-// ---------- Pure Pursuit ----------
+// ---------- Pure Pursuit (EXACT v1 LOGIC) ----------
+function getLookaheadPoint(){
+    for(let i=currentPathIndex;i<path.length-1;i++){
+        const [x1,y1] = path[i];
+        const [x2,y2] = path[i+1];
+
+        const dx = x2-x1;
+        const dy = y2-y1;
+
+        const fx = x1-robotX;
+        const fy = y1-robotY;
+
+        const a = dx*dx + dy*dy;
+        const b = 2*(fx*dx + fy*dy);
+        const c = fx*fx + fy*fy - lookaheadDistance*lookaheadDistance;
+
+        const disc = b*b - 4*a*c;
+        if(disc < 0) continue;
+
+        const t = (-b + Math.sqrt(disc)) / (2*a);
+        if(t>=0 && t<=1){
+            return [x1 + t*dx, y1 + t*dy];
+        }
+    }
+    return path[path.length-1];
+}
+
 function calculateCurvature(lx,ly){
     const dx = lx-robotX;
     const dy = ly-robotY;
 
-    const targetAngle = Math.atan2(dy,dx);
-    const robotAngle = robotTheta*Math.PI/180;
+    const angleToTarget = Math.atan2(dy,dx);
+    let angleDiff = angleToTarget - toRad(robotTheta);
 
-    let diff = targetAngle-robotAngle;
-    while(diff>Math.PI) diff-=2*Math.PI;
-    while(diff<-Math.PI) diff+=2*Math.PI;
+    while(angleDiff>Math.PI) angleDiff-=2*Math.PI;
+    while(angleDiff<-Math.PI) angleDiff+=2*Math.PI;
 
     const dist = Math.hypot(dx,dy);
     if(dist<1) return 0;
 
-    return (2*Math.sin(diff))/dist;
+    return (2*Math.sin(angleDiff))/dist;
 }
 
 function wheelSpeeds(curv){
-    const v = TARGET_SPEED;
+    const v = targetVelocity;
     return [
-        v*(2-curv*WHEEL_TRACK)/2,
-        v*(2+curv*WHEEL_TRACK)/2
+        v*(2-curv*wheelTrack)/2,
+        v*(2+curv*wheelTrack)/2
     ];
 }
 
 function updateOdometry(vL,vR){
-    const dl=vL, dr=vR;
-    const dc=(dl+dr)/2;
-    const dtheta=(dr-dl)/WHEEL_TRACK;
+    const dl = vL;
+    const dr = vR;
 
-    robotTheta += dtheta*180/Math.PI;
-    robotX += dc*Math.cos(robotTheta*Math.PI/180);
-    robotY += dc*Math.sin(robotTheta*Math.PI/180);
+    const dc = (dl+dr)/2;
+    const dtheta = (dr-dl)/wheelTrack;
+
+    robotTheta += toDeg(dtheta);
+    robotX += dc*Math.cos(toRad(robotTheta));
+    robotY += dc*Math.sin(toRad(robotTheta));
 }
 
 function simulateRobot(){
-    if(!runningPath||robotIndex>=smoothPath.length) return;
+    if(!runningPath || currentPathIndex>=path.length-1) return;
 
-    while(robotIndex<smoothPath.length-1 &&
-          distance(robotX,robotY,
-                   smoothPath[robotIndex][0],
-                   smoothPath[robotIndex][1])<6){
-        robotIndex++;
-    }
-
-    let lx=smoothPath[robotIndex][0];
-    let ly=smoothPath[robotIndex][1];
-    for(let i=robotIndex;i<smoothPath.length;i++){
-        if(distance(robotX,robotY,
-                    smoothPath[i][0],
-                    smoothPath[i][1])>=LOOKAHEAD){
-            lx=smoothPath[i][0];
-            ly=smoothPath[i][1];
-            break;
-        }
-    }
-
-    const curv = calculateCurvature(lx,ly);
-    const [vL,vR] = wheelSpeeds(curv);
+    const lookahead = getLookaheadPoint();
+    const curvature = calculateCurvature(lookahead[0],lookahead[1]);
+    const [vL,vR] = wheelSpeeds(curvature);
     updateOdometry(vL,vR);
+
+    if(distance(robotX,robotY,
+                path[currentPathIndex+1][0],
+                path[currentPathIndex+1][1]) < lookaheadDistance/2){
+        currentPathIndex++;
+    }
 }
 
 // ---------- Draw ----------
@@ -159,15 +161,13 @@ function drawGrid(){
 }
 
 function drawPath(){
-    if(userPath.length<2) return;
+    if(path.length<2) return;
     ctx.strokeStyle="blue";
     ctx.lineWidth=3;
     ctx.beginPath();
-    let [x,y]=getCellCenter(userPath[0][0],userPath[0][1]);
-    ctx.moveTo(x,y);
-    for(let i=1;i<userPath.length;i++){
-        [x,y]=getCellCenter(userPath[i][0],userPath[i][1]);
-        ctx.lineTo(x,y);
+    ctx.moveTo(path[0][0],path[0][1]);
+    for(let i=1;i<path.length;i++){
+        ctx.lineTo(path[i][0],path[i][1]);
     }
     ctx.stroke();
 }
@@ -175,8 +175,14 @@ function drawPath(){
 function drawRobot(){
     ctx.fillStyle="red";
     ctx.beginPath();
-    ctx.arc(robotX,robotY,8,0,Math.PI*2);
+    ctx.arc(robotX,robotY,robotRadius,0,Math.PI*2);
     ctx.fill();
+
+    const a = toRad(robotTheta);
+    ctx.beginPath();
+    ctx.moveTo(robotX,robotY);
+    ctx.lineTo(robotX+15*Math.cos(a), robotY+15*Math.sin(a));
+    ctx.stroke();
 }
 
 // ---------- Loop ----------
