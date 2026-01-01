@@ -3,8 +3,8 @@ const ctx = canvas.getContext("2d");
 
 // Canvas sizing
 function resizeCanvas() {
-  canvas.width = window.innerWidth * 0.7; // leave space for table
-  canvas.height = window.innerHeight - 50; // leave space for button
+  canvas.width = window.innerWidth * 0.7;
+  canvas.height = window.innerHeight - 50;
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -14,29 +14,28 @@ const GRID_SIZE = 100;
 const GRID_COLS = 5;
 const GRID_ROWS = 4;
 
-// Path drawing
+// Path
 let userPath = [];
 let smoothPath = [];
 let dragging = false;
 let runningPath = false;
 let robotIndex = 0;
-let paused = false; // <<< pause flag
-
-// Robot
-let robotX = 0;
-let robotY = 0;
-let robotTheta = 0;
-const lookaheadDistance = 40;
-let baseSpeed = 0.8;
-let debug = {};
+let paused = false;
 let reachedEnd = false;
 
-// Debug table
+// Robot
+let robotX = 0, robotY = 0, robotTheta = 0;
+const lookaheadDistance = 40;
+const baseSpeed = 0.8;
+const TURN_GAIN = 0.08;
+
+// Debug
+let debug = {};
 const debugTableBody = document.querySelector("#debugTable tbody");
 let startTime = Date.now();
 
 /* ---------- HELPERS ---------- */
-function getCellCenter(row, col){ return [col*GRID_SIZE + GRID_SIZE/2, row*GRID_SIZE + GRID_SIZE/2]; }
+function getCellCenter(r,c){ return [c*GRID_SIZE+GRID_SIZE/2, r*GRID_SIZE+GRID_SIZE/2]; }
 function distance(x1,y1,x2,y2){ return Math.hypot(x2-x1, y2-y1); }
 function getMouseCell(e){
   const rect = canvas.getBoundingClientRect();
@@ -44,9 +43,9 @@ function getMouseCell(e){
 }
 
 /* ---------- MOUSE INPUT ---------- */
-canvas.addEventListener("mousedown", e=>{ dragging = true; addPath(e); });
+canvas.addEventListener("mousedown", e=>{ dragging=true; addPath(e); });
 canvas.addEventListener("mousemove", e=>{ if(dragging) addPath(e); });
-canvas.addEventListener("mouseup", e=>{ dragging = false; createSmoothPath(); });
+canvas.addEventListener("mouseup", e=>{ dragging=false; createSmoothPath(); });
 
 function addPath(e){
   const [r,c] = getMouseCell(e);
@@ -72,61 +71,43 @@ function createSmoothPath(){
     [robotX, robotY] = smoothPath[0];
     robotTheta = 0;
     runningPath = true;
+    paused = false;
     reachedEnd = false;
-    paused = false; // reset pause on new path
     startTime = Date.now();
   }
 }
 
 /* ---------- DRAW GRID & PATH ---------- */
 function drawGrid(){
-  ctx.fillStyle = "#f9f9f9";
-  ctx.fillRect(0,0,canvas.width, canvas.height);
-
-  ctx.strokeStyle = "#ccc";
-  for(let x=0;x<=GRID_COLS*GRID_SIZE;x+=GRID_SIZE){
-    ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,GRID_ROWS*GRID_SIZE); ctx.stroke();
-  }
-  for(let y=0;y<=GRID_ROWS*GRID_SIZE;y+=GRID_SIZE){
-    ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(GRID_COLS*GRID_SIZE,y); ctx.stroke();
-  }
-
-  ctx.fillStyle = "#888";
-  ctx.font = "12px monospace";
-  for(let r=0;r<GRID_ROWS;r++){
-    for(let c=0;c<GRID_COLS;c++){
-      ctx.fillText(`(${c},${r})`, c*GRID_SIZE+5, r*GRID_SIZE+15);
-    }
-  }
+  ctx.fillStyle="#f9f9f9";
+  ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.strokeStyle="#ccc";
+  for(let x=0;x<=GRID_COLS*GRID_SIZE;x+=GRID_SIZE){ ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,GRID_ROWS*GRID_SIZE); ctx.stroke(); }
+  for(let y=0;y<=GRID_ROWS*GRID_SIZE;y+=GRID_SIZE){ ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(GRID_COLS*GRID_SIZE,y); ctx.stroke(); }
+  ctx.fillStyle="#888"; ctx.font="12px monospace";
+  for(let r=0;r<GRID_ROWS;r++){ for(let c=0;c<GRID_COLS;c++){ ctx.fillText(`(${c},${r})`, c*GRID_SIZE+5, r*GRID_SIZE+15); } }
 }
 
 function drawUserPath(){
   if(userPath.length<2) return;
-  ctx.strokeStyle = "blue";
-  ctx.lineWidth = 4;
+  ctx.strokeStyle="blue"; ctx.lineWidth=4;
   ctx.beginPath();
   let [x,y] = getCellCenter(userPath[0][0], userPath[0][1]);
   ctx.moveTo(x,y);
-  for(let i=1;i<userPath.length;i++){
-    [x,y] = getCellCenter(userPath[i][0], userPath[i][1]);
-    ctx.lineTo(x,y);
-  }
+  for(let i=1;i<userPath.length;i++){ [x,y] = getCellCenter(userPath[i][0], userPath[i][1]); ctx.lineTo(x,y); }
   ctx.stroke();
 }
 
 /* ---------- ROBOT ---------- */
 function drawRobot(){
-  ctx.fillStyle = "red";
-  ctx.beginPath(); ctx.arc(robotX, robotY, 8, 0, Math.PI*2); ctx.fill();
-
-  ctx.strokeStyle = "black";
-  ctx.beginPath();
-  ctx.moveTo(robotX, robotY);
+  ctx.fillStyle="red"; ctx.beginPath(); ctx.arc(robotX, robotY, 8,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle="black"; ctx.beginPath();
+  ctx.moveTo(robotX,robotY);
   ctx.lineTo(robotX+15*Math.cos(robotTheta), robotY+15*Math.sin(robotTheta));
   ctx.stroke();
 
   if(!reachedEnd && smoothPath.length>0){
-    ctx.fillStyle = "green";
+    ctx.fillStyle="green";
     ctx.beginPath();
     ctx.arc(debug.lookahead ? debug.lookahead[0] : robotX,
             debug.lookahead ? debug.lookahead[1] : robotY,
@@ -139,23 +120,21 @@ function drawRobot(){
 function simulateRobot(){
   if(!runningPath || reachedEnd || robotIndex>=smoothPath.length || paused) return;
 
-  const LOOKAHEAD = lookaheadDistance;
-  const TURN_GAIN = 0.08;
-
+  // Advance index if close to current target
   while(robotIndex<smoothPath.length-1 &&
         distance(robotX, robotY, smoothPath[robotIndex][0], smoothPath[robotIndex][1])<6){
     robotIndex++;
   }
 
-  let lx = smoothPath[robotIndex][0];
-  let ly = smoothPath[robotIndex][1];
-
+  // Find lookahead point
+  let lx = smoothPath[robotIndex][0], ly = smoothPath[robotIndex][1];
   for(let i=robotIndex;i<smoothPath.length;i++){
-    if(distance(robotX, robotY, smoothPath[i][0], smoothPath[i][1])>=LOOKAHEAD){
+    if(distance(robotX, robotY, smoothPath[i][0], smoothPath[i][1])>=lookaheadDistance){
       lx = smoothPath[i][0]; ly = smoothPath[i][1]; break;
     }
   }
 
+  // Pure Pursuit math
   let targetTheta = Math.atan2(ly-robotY, lx-robotX);
   let currentTheta = robotTheta;
 
@@ -163,8 +142,9 @@ function simulateRobot(){
   while(error>Math.PI) error-=2*Math.PI;
   while(error<-Math.PI) error+=2*Math.PI;
 
-  robotTheta += error*TURN_GAIN;
+  let curvature = error * TURN_GAIN;
 
+  robotTheta += curvature;
   robotX += Math.cos(robotTheta)*baseSpeed;
   robotY += Math.sin(robotTheta)*baseSpeed;
 
@@ -173,27 +153,35 @@ function simulateRobot(){
     reachedEnd = true;
   }
 
-  debug = { lookahead: [lx,ly] };
+  debug = { lookahead: [lx,ly], error, curvature, targetTheta };
 }
 
 /* ---------- UPDATE DEBUG TABLE ---------- */
 function updateDebugTable(){
-  if(!runningPath || smoothPath.length===0 || paused) return; // stop logging when paused
+  if(!runningPath || smoothPath.length===0 || paused) return;
+
   const row = document.createElement("tr");
   const time = Date.now()-startTime;
   const hx = debug.lookahead ? debug.lookahead[0].toFixed(2) : '';
   const hy = debug.lookahead ? debug.lookahead[1].toFixed(2) : '';
+
+  // Calculations for table
+  const headingDeg = ((robotTheta*180/Math.PI + 360)%360).toFixed(2);
+  const dist = debug.lookahead ? distance(robotX, robotY, debug.lookahead[0], debug.lookahead[1]).toFixed(2) : '';
+  const angleToLookaheadDeg = debug.lookahead ? ((Math.atan2(debug.lookahead[1]-robotY, debug.lookahead[0]-robotX)*180/Math.PI + 360)%360).toFixed(2) : '';
+  const angleErrorDeg = debug.lookahead ? (debug.error*180/Math.PI).toFixed(2) : '';
+  const curvature = debug.lookahead ? debug.curvature.toFixed(4) : '';
+
   row.innerHTML = `<td>${time}</td><td>${robotX.toFixed(2)}</td><td>${robotY.toFixed(2)}</td>
-                   <td>${(robotTheta*180/Math.PI).toFixed(2)}</td><td>${hx}</td><td>${hy}</td>`;
+                   <td>${headingDeg}</td><td>${hx}</td><td>${hy}</td>
+                   <td>${dist}</td><td>${angleToLookaheadDeg}</td><td>${angleErrorDeg}</td><td>${curvature}</td>`;
   debugTableBody.appendChild(row);
   debugTableBody.scrollTop = debugTableBody.scrollHeight;
 }
 setInterval(updateDebugTable, 150);
 
 /* ---------- STOP BUTTON ---------- */
-document.getElementById("stopBtn").addEventListener("click", () => {
-  paused = true;
-});
+document.getElementById("stopBtn").addEventListener("click", ()=>{ paused=true; });
 
 /* ---------- LOOP ---------- */
 function loop(){
