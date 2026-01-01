@@ -2,15 +2,44 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Pure Pursuit Debug</title>
+<title>Pure Pursuit Debug Table</title>
 <style>
-  body { margin: 0; overflow: hidden; background: #fff; display: flex; justify-content: center; align-items: center; height: 100vh; }
-  canvas { display: block; border: 1px solid #aaa; }
+  body { margin: 0; display: flex; height: 100vh; font-family: monospace; }
+  #canvas-container { flex: 1; display: flex; justify-content: center; align-items: center; }
+  canvas { border: 1px solid #aaa; }
+  #debug-container {
+    width: 400px;
+    overflow-y: auto;
+    border-left: 1px solid #aaa;
+    padding: 8px;
+    background: #f4f4f4;
+  }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { border: 1px solid #ccc; padding: 4px; text-align: right; font-size: 12px; }
+  th { background: #ddd; }
 </style>
 </head>
 <body>
 
-<canvas id="gridCanvas"></canvas>
+<div id="canvas-container">
+  <canvas id="gridCanvas"></canvas>
+</div>
+
+<div id="debug-container">
+  <table id="debugTable">
+    <thead>
+      <tr>
+        <th>Time (ms)</th>
+        <th>Robot X</th>
+        <th>Robot Y</th>
+        <th>Heading (°)</th>
+        <th>Lookahead X</th>
+        <th>Lookahead Y</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
 
 <script src="main.js"></script>
 </body>
