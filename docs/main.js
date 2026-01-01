@@ -2,8 +2,8 @@ const canvas = document.getElementById("gridCanvas");
 const ctx = canvas.getContext("2d");
 
 function resizeCanvas() {
-  canvas.width = window.innerWidth * 0.9;
-  canvas.height = window.innerHeight * 0.9;
+  canvas.width = window.innerWidth * 0.7; // leave room for debug table
+  canvas.height = window.innerHeight;
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -25,10 +25,13 @@ let robotX = 0;
 let robotY = 0;
 let robotTheta = 0;
 const lookaheadDistance = 40;
-let baseSpeed = 0.8;  // <<< SLOW SPEED
-const wheelBase = 20;
+let baseSpeed = 0.8;
 let debug = {};
 let reachedEnd = false;
+
+// Debug table
+const debugTableBody = document.querySelector("#debugTable tbody");
+let startTime = Date.now();
 
 /* ---------- HELPERS ---------- */
 function getCellCenter(row, col){ return [col*GRID_SIZE + GRID_SIZE/2, row*GRID_SIZE + GRID_SIZE/2]; }
@@ -68,6 +71,7 @@ function createSmoothPath(){
     robotTheta = 0;
     runningPath = true;
     reachedEnd = false;
+    startTime = Date.now();
   }
 }
 
@@ -107,7 +111,7 @@ function drawUserPath(){
   ctx.stroke();
 }
 
-/* ---------- ROBOT & PURE PURSUIT ---------- */
+/* ---------- ROBOT ---------- */
 function drawRobot(){
   ctx.fillStyle = "red";
   ctx.beginPath(); ctx.arc(robotX, robotY, 8, 0, Math.PI*2); ctx.fill();
@@ -128,6 +132,7 @@ function drawRobot(){
   }
 }
 
+/* ---------- SIMULATE ROBOT ---------- */
 function simulateRobot(){
   if(!runningPath || reachedEnd || robotIndex>=smoothPath.length) return;
 
@@ -157,7 +162,7 @@ function simulateRobot(){
 
   robotTheta += error*TURN_GAIN;
 
-  robotX += Math.cos(robotTheta)*baseSpeed; // <<< slowed down
+  robotX += Math.cos(robotTheta)*baseSpeed;
   robotY += Math.sin(robotTheta)*baseSpeed;
 
   if(robotIndex===smoothPath.length-1 &&
@@ -168,32 +173,21 @@ function simulateRobot(){
   debug = { lookahead: [lx,ly] };
 }
 
-/* ---------- DEBUG PANEL ---------- */
-function drawDebugPanel(){
-  ctx.fillStyle = "#f4f4f4";
-  ctx.fillRect(canvas.width-400,0,400,canvas.height);
-  ctx.strokeStyle = "#000";
-  ctx.beginPath();
-  ctx.moveTo(canvas.width-400,0); ctx.lineTo(canvas.width-400,canvas.height); ctx.stroke();
+/* ---------- UPDATE DEBUG TABLE ---------- */
+function updateDebugTable(){
+  if(!runningPath || smoothPath.length===0) return;
+  const row = document.createElement("tr");
+  const time = Date.now()-startTime;
+  const hx = debug.lookahead ? debug.lookahead[0].toFixed(2) : '';
+  const hy = debug.lookahead ? debug.lookahead[1].toFixed(2) : '';
+  row.innerHTML = `<td>${time}</td><td>${robotX.toFixed(2)}</td><td>${robotY.toFixed(2)}</td>
+                   <td>${(robotTheta*180/Math.PI).toFixed(2)}</td><td>${hx}</td><td>${hy}</td>`;
+  debugTableBody.appendChild(row);
+  debugTableBody.scrollTop = debugTableBody.scrollHeight;
 }
 
-function drawDebug(){
-  ctx.fillStyle = "black";
-  ctx.font = "13px monospace";
-  let x = canvas.width-380, y=20;
-  function line(t){ ctx.fillText(t,x,y); y+=16; }
-
-  line("PURE PURSUIT DEBUG"); y+=8;
-  line(`Robot X: ${robotX.toFixed(2)}`);
-  line(`Robot Y: ${robotY.toFixed(2)}`);
-  line(`Heading θ: ${(robotTheta*180/Math.PI).toFixed(2)} deg`);
-  line(`Path points: ${userPath.length}`);
-  line(`Smooth path length: ${smoothPath.length}`);
-  if(!reachedEnd && smoothPath.length>0){
-    line(`Lookahead X: ${debug.lookahead[0].toFixed(2)}`);
-    line(`Lookahead Y: ${debug.lookahead[1].toFixed(2)}`);
-  } else line("Robot has reached the last point.");
-}
+// Update debug table every 50ms
+setInterval(updateDebugTable, 50);
 
 /* ---------- LOOP ---------- */
 function loop(){
@@ -202,8 +196,6 @@ function loop(){
   drawUserPath();
   simulateRobot();
   drawRobot();
-  drawDebugPanel();
-  drawDebug();
   requestAnimationFrame(loop);
 }
 loop();
