@@ -7,7 +7,7 @@ const ctx = canvas.getContext("2d");
 
 const ROWS = 4;
 const COLS = 5;
-const CELL_SIZE = 100;
+const CELL_SIZE = 200;
 
 // --- Robot parameters (from v1) ---
 const robotRadius = 8;
