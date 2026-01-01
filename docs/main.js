@@ -73,7 +73,7 @@ function createSmoothPath(){
     robotTheta = 0;
     runningPath = true;
     reachedEnd = false;
-    paused = false;
+    paused = false; // reset pause on new path
     startTime = Date.now();
   }
 }
@@ -178,7 +178,7 @@ function simulateRobot(){
 
 /* ---------- UPDATE DEBUG TABLE ---------- */
 function updateDebugTable(){
-  if(!runningPath || smoothPath.length===0) return;
+  if(!runningPath || smoothPath.length===0 || paused) return; // stop logging when paused
   const row = document.createElement("tr");
   const time = Date.now()-startTime;
   const hx = debug.lookahead ? debug.lookahead[0].toFixed(2) : '';
@@ -186,7 +186,7 @@ function updateDebugTable(){
   row.innerHTML = `<td>${time}</td><td>${robotX.toFixed(2)}</td><td>${robotY.toFixed(2)}</td>
                    <td>${(robotTheta*180/Math.PI).toFixed(2)}</td><td>${hx}</td><td>${hy}</td>`;
   debugTableBody.appendChild(row);
-  debugTableBody.scrollTop = debugTableBody.scrollHeight; // auto-scroll
+  debugTableBody.scrollTop = debugTableBody.scrollHeight;
 }
 setInterval(updateDebugTable, 50);
 
