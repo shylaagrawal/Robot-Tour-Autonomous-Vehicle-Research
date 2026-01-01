@@ -10,29 +10,8 @@
 </head>
 <body>
 
-<canvas id="gridCanvas" width="900" height="400"></canvas>
+<canvas id="gridCanvas"></canvas>
+<script src="main.js"></script>
 
-<script>
-const canvas = document.getElementById("gridCanvas");
-const ctx = canvas.getContext("2d");
-
-const GRID_SIZE = 100;
-const GRID_COLS = 5;
-const GRID_ROWS = 4;
-
-// Example path
-let path = [
-  [50, 50],
-  [150, 150],
-  [250, 220],
-  [350, 240],
-  [450, 260]
-];
-
-let robotX = path[0][0];
-let robotY = path[0][1];
-let robotTheta = 0;
-let currentPathIndex = 0;
-
-const lookaheadDistance = 40;
-const base
+</body>
+</html>
