@@ -1,91 +1,178 @@
-<canvas id="gridCanvas" width="500" height="400"></canvas>
-<button id="runBtn">Run</button>
-
-<script>
 const canvas = document.getElementById("gridCanvas");
 const ctx = canvas.getContext("2d");
 
-const ROWS = 4;
-const COLS = 5;
-const CELL_SIZE = 100;
+const GRID_SIZE = 100;
+const GRID_COLS = 5;
+const GRID_ROWS = 4;
 
-// --- Robot parameters ---
-const robotRadius = 8;
-const wheelTrack = 30;
-const lookaheadDistance = 40;
-const targetVelocity = 4;
+let path = [
+  [50, 200],
+  [150, 200],
+  [250, 220],
+  [350, 240],
+  [450, 260]
+];
 
-let userPath = [];
-let path = [];
-let dragging = false;
-let runningPath = false;
+let robotX = 50;
+let robotY = 200;
+let robotTheta = 0;
 let currentPathIndex = 0;
 
-let robotX = 0;
-let robotY = 0;
-let robotTheta = 0; // degrees
+const lookaheadDistance = 40;
+const baseSpeed = 4;
+const wheelBase = 20;
 
-// --- Instrumentation state ---
-let debug = {
-    lookahead: [0,0],
-    curvature: 0,
-    vL: 0,
-    vR: 0,
-    angleToTarget: 0,
-    angleError: 0,
-    distToLookahead: 0
-};
+let debug = {};
 
-// ---------- Helpers ----------
-function getCellCenter(r,c){
-    return [c*CELL_SIZE + CELL_SIZE/2,
-            r*CELL_SIZE + CELL_SIZE/2];
+/* ---------- DRAWING ---------- */
+
+function drawGrid() {
+  ctx.strokeStyle = "#ccc";
+  for (let x = 0; x <= GRID_COLS * GRID_SIZE; x += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, GRID_ROWS * GRID_SIZE);
+    ctx.stroke();
+  }
+  for (let y = 0; y <= GRID_ROWS * GRID_SIZE; y += GRID_SIZE) {
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(GRID_COLS * GRID_SIZE, y);
+    ctx.stroke();
+  }
 }
 
-function distance(x1,y1,x2,y2){
-    return Math.hypot(x2-x1, y2-y1);
+function drawPath() {
+  ctx.strokeStyle = "blue";
+  ctx.beginPath();
+  ctx.moveTo(path[0][0], path[0][1]);
+  for (let p of path) ctx.lineTo(p[0], p[1]);
+  ctx.stroke();
 }
 
-function toRad(d){ return d*Math.PI/180; }
-function toDeg(r){ return r*180/Math.PI; }
+function drawRobot() {
+  ctx.fillStyle = "red";
+  ctx.beginPath();
+  ctx.arc(robotX, robotY, 6, 0, Math.PI * 2);
+  ctx.fill();
 
-// ---------- Mouse ----------
-canvas.addEventListener("mousedown",e=>{
-    dragging = true;
-    addPath(e);
-});
-canvas.addEventListener("mousemove",e=>{
-    if(dragging) addPath(e);
-});
-canvas.addEventListener("mouseup",()=>dragging=false);
-
-function addPath(e){
-    const rect = canvas.getBoundingClientRect();
-    const r = Math.floor((e.clientY-rect.top)/CELL_SIZE);
-    const c = Math.floor((e.clientX-rect.left)/CELL_SIZE);
-    if(r<0||c<0||r>=ROWS||c>=COLS) return;
-    if(!userPath.some(p=>p[0]==r && p[1]==c)){
-        userPath.push([r,c]);
-    }
+  ctx.strokeStyle = "black";
+  ctx.beginPath();
+  ctx.moveTo(robotX, robotY);
+  ctx.lineTo(
+    robotX + 15 * Math.cos(robotTheta),
+    robotY + 15 * Math.sin(robotTheta)
+  );
+  ctx.stroke();
 }
 
-// ---------- Run ----------
-document.getElementById("runBtn").addEventListener("click",()=>{
-    if(userPath.length<2) return;
+/* ---------- PURE PURSUIT ---------- */
 
-    path = userPath.map(p => getCellCenter(p[0],p[1]));
-    currentPathIndex = 0;
+function simulateRobot() {
+  let target = path[currentPathIndex];
+  let dx = target[0] - robotX;
+  let dy = target[1] - robotY;
+  let dist = Math.hypot(dx, dy);
 
-    robotX = path[0][0];
-    robotY = path[0][1];
-    robotTheta = 0;
-    runningPath = true;
-});
+  if (dist < lookaheadDistance && currentPathIndex < path.length - 1) {
+    currentPathIndex++;
+    target = path[currentPathIndex];
+    dx = target[0] - robotX;
+    dy = target[1] - robotY;
+    dist = Math.hypot(dx, dy);
+  }
 
-// ---------- Pure Pursuit ----------
-function getLookaheadPoint(){
-    for(let i=currentPathIndex;i<path.length-1;i++){
-        const [x1,y1] = path[i];
-        const [x2,y2] = path[i+1];
+  let angleToTarget = Math.atan2(dy, dx);
+  let angleError = angleToTarget - robotTheta;
 
-        const dx = x2
+  angleError = Math.atan2(Math.sin(angleError), Math.cos(angleError));
+
+  let curvature = (2 * Math.sin(angleError)) / dist;
+
+  let vL = baseSpeed * (2 - curvature * wheelBase) / 2;
+  let vR = baseSpeed * (2 + curvature * wheelBase) / 2;
+
+  let v = (vL + vR) / 2;
+  let omega = (vR - vL) / wheelBase;
+
+  robotX += v * Math.cos(robotTheta);
+  robotY += v * Math.sin(robotTheta);
+  robotTheta += omega;
+
+  debug = {
+    lookahead: target,
+    distToLookahead: dist,
+    angleToTarget: angleToTarget * 180 / Math.PI,
+    angleError: angleError * 180 / Math.PI,
+    curvature,
+    vL,
+    vR
+  };
+}
+
+/* ---------- DEBUG PANEL ---------- */
+
+function drawDebugPanel() {
+  ctx.fillStyle = "#f4f4f4";
+  ctx.fillRect(500, 0, 400, canvas.height);
+
+  ctx.strokeStyle = "#000";
+  ctx.beginPath();
+  ctx.moveTo(500, 0);
+  ctx.lineTo(500, canvas.height);
+  ctx.stroke();
+}
+
+function drawDebug() {
+  ctx.fillStyle = "black";
+  ctx.font = "13px monospace";
+
+  let x = 520;
+  let y = 20;
+
+  function line(t) {
+    ctx.fillText(t, x, y);
+    y += 16;
+  }
+
+  line("PURE PURSUIT DEBUG");
+  y += 8;
+
+  line(`Robot X: ${robotX.toFixed(2)}`);
+  line(`Robot Y: ${robotY.toFixed(2)}`);
+  line(`Heading θ: ${(robotTheta * 180 / Math.PI).toFixed(2)} deg`);
+  line(`Path index: ${currentPathIndex}`);
+  y += 8;
+
+  line(`Lookahead dist: ${lookaheadDistance}`);
+  line(`Target X: ${debug.lookahead[0].toFixed(2)}`);
+  line(`Target Y: ${debug.lookahead[1].toFixed(2)}`);
+  line(`Dist to target: ${debug.distToLookahead.toFixed(2)}`);
+  y += 8;
+
+  line(`Angle to target: ${debug.angleToTarget.toFixed(2)} deg`);
+  line(`Angle error: ${debug.angleError.toFixed(2)} deg`);
+  line(`Curvature κ: ${debug.curvature.toFixed(5)}`);
+  y += 8;
+
+  line(`Left wheel v: ${debug.vL.toFixed(2)}`);
+  line(`Right wheel v: ${debug.vR.toFixed(2)}`);
+}
+
+/* ---------- LOOP ---------- */
+
+function loop() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawGrid();
+  drawPath();
+  simulateRobot();
+  drawRobot();
+
+  drawDebugPanel();
+  drawDebug();
+
+  requestAnimationFrame(loop);
+}
+
+loop();
