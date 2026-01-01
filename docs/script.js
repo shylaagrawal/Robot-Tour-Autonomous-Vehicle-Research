@@ -1,4 +1,4 @@
-<canvas id="gridCanvas" width="500" height="400"></canvas>
+<canvas id="gridCanvas" width="1000" height="800"></canvas>
 <button id="runBtn">Run</button>
 
 <script>
