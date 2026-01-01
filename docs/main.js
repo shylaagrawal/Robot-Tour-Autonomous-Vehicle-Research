@@ -1,7 +1,6 @@
 const canvas = document.getElementById("gridCanvas");
 const ctx = canvas.getContext("2d");
 
-// Make canvas fill window
 function resizeCanvas() {
   canvas.width = window.innerWidth * 0.9;
   canvas.height = window.innerHeight * 0.9;
@@ -26,46 +25,28 @@ let robotX = 0;
 let robotY = 0;
 let robotTheta = 0;
 const lookaheadDistance = 40;
-const baseSpeed = 4;
+let baseSpeed = 0.8;  // <<< SLOW SPEED
 const wheelBase = 20;
 let debug = {};
 let reachedEnd = false;
 
 /* ---------- HELPERS ---------- */
-function getCellCenter(row, col){
-  return [col*GRID_SIZE + GRID_SIZE/2, row*GRID_SIZE + GRID_SIZE/2];
-}
-
+function getCellCenter(row, col){ return [col*GRID_SIZE + GRID_SIZE/2, row*GRID_SIZE + GRID_SIZE/2]; }
 function distance(x1,y1,x2,y2){ return Math.hypot(x2-x1, y2-y1); }
-
 function getMouseCell(e){
   const rect = canvas.getBoundingClientRect();
-  const x = e.clientX - rect.left;
-  const y = e.clientY - rect.top;
-  return [Math.floor(y/GRID_SIZE), Math.floor(x/GRID_SIZE)];
+  return [Math.floor((e.clientY - rect.top)/GRID_SIZE), Math.floor((e.clientX - rect.left)/GRID_SIZE)];
 }
 
 /* ---------- MOUSE INPUT ---------- */
-canvas.addEventListener("mousedown", e=>{
-  dragging = true;
-  addPath(e);
-});
-
-canvas.addEventListener("mousemove", e=>{
-  if(dragging) addPath(e);
-});
-
-canvas.addEventListener("mouseup", e=>{
-  dragging = false;
-  createSmoothPath();
-});
+canvas.addEventListener("mousedown", e=>{ dragging = true; addPath(e); });
+canvas.addEventListener("mousemove", e=>{ if(dragging) addPath(e); });
+canvas.addEventListener("mouseup", e=>{ dragging = false; createSmoothPath(); });
 
 function addPath(e){
   const [r,c] = getMouseCell(e);
   if(r<0||c<0||r>=GRID_ROWS||c>=GRID_COLS) return;
-  if(!userPath.some(p=>p[0]===r && p[1]===c)){
-    userPath.push([r,c]);
-  }
+  if(!userPath.some(p=>p[0]===r && p[1]===c)) userPath.push([r,c]);
 }
 
 /* ---------- CREATE SMOOTH PATH ---------- */
@@ -151,7 +132,6 @@ function simulateRobot(){
   if(!runningPath || reachedEnd || robotIndex>=smoothPath.length) return;
 
   const LOOKAHEAD = lookaheadDistance;
-  const SPEED = baseSpeed;
   const TURN_GAIN = 0.08;
 
   while(robotIndex<smoothPath.length-1 &&
@@ -177,8 +157,8 @@ function simulateRobot(){
 
   robotTheta += error*TURN_GAIN;
 
-  robotX += Math.cos(robotTheta)*SPEED;
-  robotY += Math.sin(robotTheta)*SPEED;
+  robotX += Math.cos(robotTheta)*baseSpeed; // <<< slowed down
+  robotY += Math.sin(robotTheta)*baseSpeed;
 
   if(robotIndex===smoothPath.length-1 &&
      distance(robotX, robotY, smoothPath[smoothPath.length-1][0], smoothPath[smoothPath.length-1][1])<2){
