@@ -1,14 +1,15 @@
 const canvas = document.getElementById("gridCanvas");
 const ctx = canvas.getContext("2d");
 
+// Canvas sizing
 function resizeCanvas() {
-  canvas.width = window.innerWidth * 0.7; // leave room for debug table
+  canvas.width = window.innerWidth * 0.7; // leave space for table
   canvas.height = window.innerHeight;
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
 
-// Grid settings
+// Grid
 const GRID_SIZE = 100;
 const GRID_COLS = 5;
 const GRID_ROWS = 4;
@@ -183,7 +184,7 @@ function updateDebugTable(){
   row.innerHTML = `<td>${time}</td><td>${robotX.toFixed(2)}</td><td>${robotY.toFixed(2)}</td>
                    <td>${(robotTheta*180/Math.PI).toFixed(2)}</td><td>${hx}</td><td>${hy}</td>`;
   debugTableBody.appendChild(row);
-  debugTableBody.scrollTop = debugTableBody.scrollHeight;
+  debugTableBody.scrollTop = debugTableBody.scrollHeight; // auto-scroll
 }
 
 // Update debug table every 50ms
