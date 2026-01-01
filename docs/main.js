@@ -188,7 +188,7 @@ function updateDebugTable(){
   debugTableBody.appendChild(row);
   debugTableBody.scrollTop = debugTableBody.scrollHeight;
 }
-setInterval(updateDebugTable, 50);
+setInterval(updateDebugTable, 150);
 
 /* ---------- STOP BUTTON ---------- */
 document.getElementById("stopBtn").addEventListener("click", () => {
