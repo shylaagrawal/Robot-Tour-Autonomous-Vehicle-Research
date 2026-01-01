@@ -1,10 +1,10 @@
 const canvas = document.getElementById("gridCanvas");
 const ctx = canvas.getContext("2d");
 
-// Make canvas full window
+// Make canvas fill window
 function resizeCanvas() {
-  canvas.width = window.innerWidth * 0.9; // 90% width to center
-  canvas.height = window.innerHeight * 0.9; // 90% height
+  canvas.width = window.innerWidth * 0.9;
+  canvas.height = window.innerHeight * 0.9;
 }
 window.addEventListener('resize', resizeCanvas);
 resizeCanvas();
@@ -14,20 +14,20 @@ const GRID_SIZE = 100;
 const GRID_COLS = 5;
 const GRID_ROWS = 4;
 
-// Path drawing variables
+// Path drawing
 let userPath = [];
 let smoothPath = [];
 let dragging = false;
 let runningPath = false;
 let robotIndex = 0;
 
+// Robot
 let robotX = 0;
 let robotY = 0;
 let robotTheta = 0;
 const lookaheadDistance = 40;
 const baseSpeed = 4;
 const wheelBase = 20;
-
 let debug = {};
 let reachedEnd = false;
 
@@ -55,7 +55,10 @@ canvas.addEventListener("mousemove", e=>{
   if(dragging) addPath(e);
 });
 
-canvas.addEventListener("mouseup", ()=>{ dragging = false; });
+canvas.addEventListener("mouseup", e=>{
+  dragging = false;
+  createSmoothPath();
+});
 
 function addPath(e){
   const [r,c] = getMouseCell(e);
@@ -65,7 +68,7 @@ function addPath(e){
   }
 }
 
-/* ---------- RUN BUTTON LOGIC ---------- */
+/* ---------- CREATE SMOOTH PATH ---------- */
 function createSmoothPath(){
   smoothPath = [];
   for(let i=0;i<userPath.length-1;i++){
@@ -75,10 +78,7 @@ function createSmoothPath(){
     const [x2,y2] = getCellCenter(r2,c2);
     const steps = 25;
     for(let t=0;t<=steps;t++){
-      smoothPath.push([
-        x1 + (x2-x1)*t/steps,
-        y1 + (y2-y1)*t/steps
-      ]);
+      smoothPath.push([x1 + (x2-x1)*t/steps, y1 + (y2-y1)*t/steps]);
     }
   }
   if(smoothPath.length>0){
@@ -115,7 +115,7 @@ function drawGrid(){
 function drawUserPath(){
   if(userPath.length<2) return;
   ctx.strokeStyle = "blue";
-  ctx.lineWidth = 4; // thicker line
+  ctx.lineWidth = 4;
   ctx.beginPath();
   let [x,y] = getCellCenter(userPath[0][0], userPath[0][1]);
   ctx.moveTo(x,y);
@@ -180,7 +180,6 @@ function simulateRobot(){
   robotX += Math.cos(robotTheta)*SPEED;
   robotY += Math.sin(robotTheta)*SPEED;
 
-  // Check if reached last point
   if(robotIndex===smoothPath.length-1 &&
      distance(robotX, robotY, smoothPath[smoothPath.length-1][0], smoothPath[smoothPath.length-1][1])<2){
     reachedEnd = true;
@@ -228,6 +227,3 @@ function loop(){
   requestAnimationFrame(loop);
 }
 loop();
-
-// Run smooth path after drawing
-window.addEventListener("mouseup", createSmoothPath);
