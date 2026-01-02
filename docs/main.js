@@ -69,7 +69,7 @@ function createSmoothPath(){
   if(smoothPath.length>0){
     robotIndex = 0;
     [robotX, robotY] = smoothPath[0];
-    robotTheta = 0;
+    robotTheta = 90;
     runningPath = true;
     paused = false;
     reachedEnd = false;
