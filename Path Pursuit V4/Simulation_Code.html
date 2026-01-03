@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+<head>
+<title>Pure Pursuit Simulator with U-Turn Handling</title>
+<style>
+  body { margin: 0; display: flex; height: 100vh; font-family: monospace; }
+  #canvas-container { flex: 1; position: relative; min-height: 400px; }
+  canvas { display: block; width: 100%; height: 100%; }
+  #log-table-container {
+    width: 350px;
+    overflow-y: auto;
+    border-left: 2px solid #333;
+  }
+  table { width: 100%; border-collapse: collapse; font-size: 12px; }
+  th, td { border: 1px solid #999; padding: 2px 4px; text-align: right; }
+  th { background: #ddd; position: sticky; top: 0; }
+  #stopBtn {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    z-index: 10;
+    padding: 8px 12px;
+    font-weight: bold;
+  }
+</style>
+</head>
+<body>
+
+<button id="stopBtn">Stop</button>
+
+<div id="canvas-container">
+  <canvas id="simulatorCanvas"></canvas>
+</div>
+<div id="log-table-container">
+  <table id="logTable">
+    <thead>
+      <tr>
+        <th>Frame</th><th>X</th><th>Y</th><th>Θ</th>
+        <th>LX</th><th>LY</th><th>Dist</th><th>Curv</th>
+        <th>Left</th><th>Right</th><th>PathIdx</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
+<script>
+/* Robot & Path Parameters */
+const wheelTrack = 30, robotRadius = 10, lookaheadDistance = 20, targetVelocity = 15, speedFactor = 0.5;
+let robotX = 50, robotY = 50, robotTheta = 0, currentPathIndex = 0, frameCount = 0, running = true;
+let reversing = false, reverseTarget = null;
+
+/* Path */
+const path = [
+  [50, 50],[50, 100],[50, 150],[100, 150],[50,150],[50, 200],[100,200],
+  [150,200],[150,150],[200,150],[200,200],[200,250],[250,250],[250,200],
+  [300,200],[300,150],[300,100],[300,150],[250,150],[250,100],[250,50],[200,50]
+];
+
+/* Detect U-turn segments */
+const uTurnSegments = [];
+for (let i = 0; i < path.length-2; i++) {
+  const [x1,y1] = path[i];
+  const [x3,y3] = path[i+2];
+  if (x1===x3 && y1===y3) uTurnSegments.push({start:i+1,end:i+2});
+}
+
+/* Utilities */
+function toRadians(d){return d*Math.PI/180;}
+function toDegrees(r){return r*180/Math.PI;}
+function getDistance(x1,y1,x2,y2){return Math.hypot(x2-x1,y2-y1);}
+
+/* Pure Pursuit */
+function getLookaheadPoint(path,lookahead,startIndex){
+  for(let i=startIndex;i<path.length-1;i++){
+    const [x1,y1]=path[i], [x2,y2]=path[i+1];
+    const dx=x2-x1, dy=y2-y1, fx=x1-robotX, fy=y1-robotY;
+    const a=dx*dx+dy*dy, b=2*(fx*dx+fy*dy), c=fx*fx+fy*fy-lookahead*lookahead;
+    const disc=b*b-4*a*c;
+    if(disc<0) continue;
+    const sqrtDisc=Math.sqrt(disc), t1=(-b+sqrtDisc)/(2*a), t2=(-b-sqrtDisc)/(2*a);
+    for(const t of [t1,t2]) if(t>=0&&t<=1) return [x1+t*dx,y1+t*dy];
+  }
+  return path[path.length-1];
+}
+
+function calculateCurvature(point){
+  const dx=point[0]-robotX, dy=point[1]-robotY, dist=Math.hypot(dx,dy);
+  if(dist<1) return 0;
+  let angleDiff=Math.atan2(dy,dx)-toRadians(robotTheta);
+  while(angleDiff>Math.PI) angleDiff-=2*Math.PI;
+  while(angleDiff<=-Math.PI) angleDiff+=2*Math.PI;
+  return 2*Math.sin(angleDiff)/dist;
+}
+
+function calculateWheelSpeeds(curvature){
+  return [
+    targetVelocity*(1-curvature*wheelTrack/2)*speedFactor,
+    targetVelocity*(1+curvature*wheelTrack/2)*speedFactor
+  ];
+}
+
+function updateOdometry(left,right){
+  const d=(left+right)/2, dTheta=(right-left)/wheelTrack;
+  robotTheta+=toDegrees(dTheta);
+  robotX+=d*Math.cos(toRadians(robotTheta));
+  robotY+=d*Math.sin(toRadians(robotTheta));
+}
+
+/* Canvas */
+const canvas=document.getElementById("simulatorCanvas"), ctx=canvas.getContext("2d");
+function drawPath(){ctx.strokeStyle="blue";ctx.lineWidth=2;ctx.beginPath();path.forEach((p,i)=>i===0?ctx.moveTo(p[0],p[1]):ctx.lineTo(p[0],p[1]));ctx.stroke();}
+function drawRobot(){ctx.fillStyle="red";ctx.beginPath();ctx.arc(robotX,robotY,robotRadius,0,2*Math.PI);ctx.fill();const a=toRadians(robotTheta);ctx.strokeStyle="black";ctx.beginPath();ctx.moveTo(robotX,robotY);ctx.lineTo(robotX+robotRadius*Math.cos(a),robotY+robotRadius*Math.sin(a));ctx.stroke();}
+function drawLookahead(point){ctx.fillStyle="green";ctx.beginPath();ctx.arc(point[0],point[1],5,0,2*Math.PI);ctx.fill();}
+
+/* Table Logging */
+const logTableBody=document.querySelector("#logTable tbody");
+function logFrameData(frame,lx,ly,dist,curvature,left,right){
+  const row=document.createElement("tr");
+  row.innerHTML=`
+    <td>${frame}</td>
+    <td>${robotX.toFixed(1)}</td>
+    <td>${robotY.toFixed(1)}</td>
+    <td>${robotTheta.toFixed(1)}</td>
+    <td>${lx.toFixed(1)}</td>
+    <td>${ly.toFixed(1)}</td>
+    <td>${dist.toFixed(1)}</td>
+    <td>${curvature.toFixed(3)}</td>
+    <td>${left.toFixed(1)}</td>
+    <td>${right.toFixed(1)}</td>
+    <td>${currentPathIndex}</td>
+  `;
+  logTableBody.appendChild(row);
+  logTableBody.scrollTop=logTableBody.scrollHeight;
+}
+
+/* Stop Button */
+const stopBtn=document.getElementById("stopBtn");
+stopBtn.addEventListener("click",()=>{running=!running;stopBtn.textContent=running?"Stop":"Resume";});
+
+/* Main Loop */
+function loop(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawPath();
+
+  if(currentPathIndex<path.length-1 && running){
+    // Enter U-turn mode
+    if(reversing){
+      const dx=reverseTarget[0]-robotX, dy=reverseTarget[1]-robotY, dist=Math.hypot(dx,dy);
+      const moveDist=Math.min(targetVelocity*speedFactor,dist);
+      if(dist>1){
+        robotX-=moveDist*Math.cos(toRadians(robotTheta));
+        robotY-=moveDist*Math.sin(toRadians(robotTheta));
+      } else {
+        reversing=false;
+        currentPathIndex = uTurnSegments.find(seg=>seg.end===currentPathIndex)?.end || currentPathIndex;
+      }
+      logFrameData(frameCount++, reverseTarget[0], reverseTarget[1], dist, 0, -targetVelocity*speedFactor, -targetVelocity*speedFactor);
+    } else {
+      // Check if current index is a U-turn start
+      const uTurn = uTurnSegments.find(seg=>currentPathIndex===seg.start);
+      if(uTurn){
+        reversing=true;
+        reverseTarget = path[uTurn.end];
+      } else {
+        const lookahead=getLookaheadPoint(path,lookaheadDistance,currentPathIndex);
+        const dist=getDistance(robotX,robotY,lookahead[0],lookahead[1]);
+        const curvature=calculateCurvature(lookahead);
+        const [left,right]=calculateWheelSpeeds(curvature);
+        logFrameData(frameCount++,lookahead[0],lookahead[1],dist,curvature,left,right);
+        updateOdometry(left,right);
+        drawLookahead(lookahead);
+        if(getDistance(robotX,robotY,path[currentPathIndex+1][0],path[currentPathIndex+1][1])<lookaheadDistance/2){
+          currentPathIndex++;
+        }
+      }
+    }
+  }
+
+  drawRobot();
+  requestAnimationFrame(loop);
+}
+
+/* Resize */
+function resize(){canvas.width=canvas.parentElement.clientWidth;canvas.height=canvas.parentElement.clientHeight;}
+window.addEventListener("resize",resize);resize();loop();
+</script>
+
+</body>
+</html>
